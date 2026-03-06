@@ -1,0 +1,12 @@
+{
+  "name": "biji-server",
+  "version": "1.0.0",
+  "description": "比鸡多人对战服务器",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

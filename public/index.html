@@ -208,6 +208,18 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .welcome-box .welcome-coins { font-size: 40px; color: #f39c12; font-weight: bold; margin: 15px 0; }
 .welcome-box .welcome-label { color: #ccc; font-size: 14px; }
 .welcome-box .welcome-title { color: #fff; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+
+/* 匹配系统 */
+.match-section { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px; width: 100%; max-width: 400px; }
+.match-section h3 { color: #2ecc71; font-size: 15px; margin-bottom: 12px; }
+.match-status { text-align: center; padding: 15px; color: #ccc; font-size: 14px; }
+.match-waiting { color: #f39c12; font-weight: bold; }
+.match-found { color: #2ecc71; font-weight: bold; }
+.match-count { font-size: 24px; font-weight: bold; color: #f39c12; margin: 10px 0; }
+.btn-match { background: linear-gradient(135deg, #2ecc71, #27ae60); color: #fff; }
+.btn-match:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(46,204,113,0.4); }
+.btn-cancel-match { background: transparent; color: #e74c3c; border: 2px solid #e74c3c; }
+.btn-cancel-match:hover { background: rgba(231,76,60,0.1); }
 </style>
 </head>
 <body>
@@ -253,6 +265,18 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       <div class="lobby-row"><label>摆牌时间：</label><select id="lobbyArrangeTime"><option value="30">30秒</option><option value="60" selected>60秒</option><option value="90">90秒</option><option value="120">120秒</option></select></div>
       <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="createRoom()">创建房间</button>
     </div>
+
+    <div class="match-section">
+      <h3>快速匹配</h3>
+      <div class="match-status" id="matchStatus">
+        <div>与随机玩家对战</div>
+        <div class="match-count" id="matchCount">0</div>
+        <div>人在等待匹配</div>
+      </div>
+      <button class="btn btn-match" style="width:100%;margin-top:8px;" onclick="startMatch()" id="matchBtn">开始匹配</button>
+      <button class="btn btn-cancel-match" style="width:100%;margin-top:8px;display:none;" onclick="cancelMatch()" id="cancelMatchBtn">取消匹配</button>
+    </div>
+
     <div class="lobby-or">- 或者 -</div>
     <div class="lobby-section">
       <h3>加入房间</h3>
@@ -438,7 +462,69 @@ function handleServerMsg(data) {
     case 'all_arranged':
       handleAllArranged(data);
       break;
+    case 'match_started':
+      handleMatchStarted(data);
+      break;
+    case 'match_cancelled':
+      handleMatchCancelled(data);
+      break;
+    case 'match_found':
+      handleMatchFound(data);
+      break;
   }
+}
+
+// ========== 匹配系统处理函数 ==========
+function handleMatchStarted(data) {
+  // 匹配开始，显示取消按钮，隐藏开始按钮
+  document.getElementById('matchBtn').style.display = 'none';
+  document.getElementById('cancelMatchBtn').style.display = 'block';
+  document.getElementById('matchStatus').innerHTML = `
+    <div class="match-waiting">匹配中...</div>
+    <div class="match-count" id="matchCount">1</div>
+    <div>人在等待匹配</div>
+  `;
+}
+
+function handleMatchCancelled(data) {
+  // 匹配取消，恢复初始状态
+  document.getElementById('matchBtn').style.display = 'block';
+  document.getElementById('cancelMatchBtn').style.display = 'none';
+  document.getElementById('matchStatus').innerHTML = `
+    <div>与随机玩家对战</div>
+    <div class="match-count" id="matchCount">0</div>
+    <div>人在等待匹配</div>
+  `;
+}
+
+function handleMatchFound(data) {
+  // 匹配成功，显示匹配信息
+  document.getElementById('matchBtn').style.display = 'block';
+  document.getElementById('cancelMatchBtn').style.display = 'none';
+  document.getElementById('matchStatus').innerHTML = `
+    <div class="match-found">匹配成功！</div>
+    <div>对手：${data.opponent.username}</div>
+    <div>房间号：${data.roomId}</div>
+    <div>密码：${data.password}</div>
+  `;
+
+  // 自动加入房间
+  setTimeout(() => {
+    send({
+      type: 'join_room',
+      roomId: data.roomId,
+      password: data.password
+    });
+  }, 1000);
+}
+
+// 匹配功能函数
+function startMatch() {
+  send({ type: 'start_match' });
+}
+
+function cancelMatch() {
+  send({ type: 'cancel_match' });
 }
 
 // ========== 页面控制 ==========

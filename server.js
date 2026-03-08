@@ -37,6 +37,9 @@ loadData();
 // ========== 在线连接管理 ==========
 const clients = new Map(); // ws -> { username }
 
+// ========== 匹配系统 ==========
+const matchQueue = new Map(); // username -> { ws, timestamp }
+
 function broadcast(roomId, msg, excludeUser) {
   const room = db.rooms[roomId];
   if (!room) return;
@@ -132,6 +135,8 @@ function handleMessage(ws, msg) {
     case 'toggle_ready': handleToggleReady(ws, data); break;
     case 'submit_arrange': handleSubmitArrange(ws, data); break;
     case 'start_next_round': handleStartNextRound(ws, data); break;
+    case 'start_match': handleStartMatch(ws, data); break;
+    case 'cancel_match': handleCancelMatch(ws, data); break;
   }
 }
 
@@ -460,6 +465,141 @@ function handleStartNextRound(ws, data) {
   broadcastRoomState(info.roomId);
 }
 
+// ========== 匹配系统处理函数 ==========
+function handleStartMatch(ws, data) {
+  const info = clients.get(ws);
+  if (!info || !info.username) return sendTo(ws, { type: 'error', msg: '请先登录' });
+
+  const username = info.username;
+
+  // 检查用户是否已经在匹配队列中
+  if (matchQueue.has(username)) {
+    return sendTo(ws, { type: 'error', msg: '您已经在匹配队列中' });
+  }
+
+  // 检查用户是否已经在房间中
+  if (info.roomId) {
+    return sendTo(ws, { type: 'error', msg: '您已经在房间中，无法匹配' });
+  }
+
+  // 加入匹配队列
+  matchQueue.set(username, { ws, timestamp: Date.now() });
+  sendTo(ws, { type: 'match_started' });
+  console.log(`用户 ${username} 开始匹配`);
+
+  // 尝试匹配
+  tryMatch();
+}
+
+function handleCancelMatch(ws, data) {
+  const info = clients.get(ws);
+  if (!info || !info.username) return;
+
+  const username = info.username;
+  if (matchQueue.has(username)) {
+    matchQueue.delete(username);
+    sendTo(ws, { type: 'match_cancelled' });
+    console.log(`用户 ${username} 取消匹配`);
+  }
+}
+
+function tryMatch() {
+  // 需要至少2人才能匹配
+  if (matchQueue.size < 2) return;
+
+  // 获取前两个等待的用户
+  const entries = Array.from(matchQueue.entries());
+  const [user1, user2] = entries.slice(0, 2);
+  const [username1, data1] = user1;
+  const [username2, data2] = user2;
+
+  // 从队列中移除
+  matchQueue.delete(username1);
+  matchQueue.delete(username2);
+
+  // 检查用户是否仍然在线且不在房间中
+  const info1 = clients.get(data1.ws);
+  const info2 = clients.get(data2.ws);
+
+  if (!info1 || !info2 || info1.roomId || info2.roomId) {
+    // 如果有用户已不在线或已在房间中，重新尝试匹配其他用户
+    if (info1 && !info1.roomId) matchQueue.set(username1, data1);
+    if (info2 && !info2.roomId) matchQueue.set(username2, data2);
+    return;
+  }
+
+  // 创建房间
+  const roomId = String(100000 + Math.floor(Math.random() * 900000));
+  const password = String(Math.floor(100000 + Math.random() * 900000)); // 6位数字密码
+  const maxPlayers = 2;
+  const baseScore = 5;
+  const arrangeTime = 60;
+  const deckSize = maxPlayers * 9 > 52 ? 54 : 52;
+
+  const userData1 = db.users[username1];
+  const userData2 = db.users[username2];
+
+  db.rooms[roomId] = {
+    roomId, password,
+    maxPlayers,
+    baseScore,
+    arrangeTime,
+    deckSize,
+    createdBy: username1,
+    status: 'waiting',
+    players: [
+      {
+        username: username1,
+        avatarIdx: userData1.avatarIdx,
+        gold: userData1.gold,
+        ready: false
+      },
+      {
+        username: username2,
+        avatarIdx: userData2.avatarIdx,
+        gold: userData2.gold,
+        ready: false
+      }
+    ],
+    gameData: null
+  };
+  saveData();
+
+  // 更新用户房间信息
+  info1.roomId = roomId;
+  info2.roomId = roomId;
+
+  // 通知用户匹配成功
+  const matchSuccessMsg = {
+    type: 'match_found',
+    roomId,
+    password,
+    opponent: {
+      username: username2,
+      avatarIdx: userData2.avatarIdx,
+      gold: userData2.gold
+    }
+  };
+  sendTo(data1.ws, matchSuccessMsg);
+
+  const matchSuccessMsg2 = {
+    type: 'match_found',
+    roomId,
+    password,
+    opponent: {
+      username: username1,
+      avatarIdx: userData1.avatarIdx,
+      gold: userData1.gold
+    }
+  };
+  sendTo(data2.ws, matchSuccessMsg2);
+
+  console.log(`匹配成功: ${username1} 和 ${username2} 进入房间 ${roomId}`);
+
+  // 广播房间状态
+  broadcastRoomState(roomId);
+}
+
 // ========== HTTP 静态文件服务 ==========
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -512,6 +652,13 @@ wss.on('connection', (ws) => {
         broadcastRoomState(info.roomId);
       }
     }
+
+    // 从匹配队列中移除
+    if (info && info.username && matchQueue.has(info.username)) {
+      matchQueue.delete(info.username);
+      console.log(`用户 ${info.username} 断开连接，已从匹配队列移除`);
+    }
+
     clients.delete(ws);
   });
 });

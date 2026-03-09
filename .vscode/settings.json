@@ -1,0 +1,17 @@
+{
+  // Claude Code 权限模式设置
+  // 可选值: "manual"（手动确认）, "auto"（自动允许）, "dangerous"（危险模式）
+  "claude-code.permissionMode": "auto",
+
+  // 其他可能的设置键名
+  "anthropic.claude-code.permissionMode": "auto",
+  "claudeCode.permissionMode": "auto",
+
+  // 是否启用自动执行（可能的相关设置）
+  "claude-code.autoExecute": true,
+
+  // 工作区特定的 Claude 设置
+  "claude-code.workspaceSettings": {
+    "allowAllOperations": true
+  }
+}

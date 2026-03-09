@@ -47,6 +47,10 @@ select option { background: #1a1a2e; color: #fff; }
 .lobby-row select, .lobby-row input { padding: 8px 12px; border-radius: 6px; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 13px; flex: 1; outline: none; }
 .lobby-row input:focus, .lobby-row select:focus { border-color: #f39c12; }
 .lobby-or { text-align: center; color: #555; font-size: 12px; padding: 4px 0; }
+
+/* 首页模式卡片 */
+.mode-card:hover > div { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+.mode-card:active > div { transform: translateY(-2px); }
 .gold-bar { display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(243,156,18,0.15), rgba(243,156,18,0.05)); border: 1px solid rgba(243,156,18,0.3); border-radius: 20px; padding: 6px 14px; font-size: 15px; color: #f39c12; font-weight: bold; }
 .gold-bar .coin-icon { width: 22px; height: 22px; display: inline-flex; }
 .gold-bar .coin-icon svg { width: 100%; height: 100%; }
@@ -220,6 +224,18 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .btn-match:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(46,204,113,0.4); }
 .btn-cancel-match { background: transparent; color: #e74c3c; border: 2px solid #e74c3c; }
 .btn-cancel-match:hover { background: rgba(231,76,60,0.1); }
+
+/* 广告弹窗 */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; }
+.modal-overlay.show { opacity: 1; visibility: visible; }
+.modal { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 2px solid #3498db; border-radius: 16px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.modal h3 { color: #3498db; font-size: 20px; margin-bottom: 20px; text-align: center; }
+
+/* 分数显示 */
+.score-display { color: #f39c12; font-weight: bold; font-size: 18px; }
+
+/* 场次选择提示 */
+.mode-hint { font-size: 12px; color: #888; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -242,6 +258,39 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   </div>
 </div>
 
+<!-- 首页 -->
+<div id="homePage" class="page">
+  <div style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;">
+    <div class="logo" style="font-size:36px;margin-top:20px;">比鸡游戏</div>
+    <div style="color:#aaa;font-size:14px;text-align:center;">请选择游戏模式</div>
+
+    <div style="display:flex;flex-direction:column;gap:15px;width:100%;margin-top:20px;">
+      <!-- 创建/加入房间模块 -->
+      <div class="mode-card" onclick="enterRoomMode()" style="cursor:pointer;">
+        <div style="background:rgba(241,196,15,0.1);border:2px solid #f1c40f;border-radius:12px;padding:20px;text-align:center;transition:all 0.3s;">
+          <div style="font-size:24px;color:#f1c40f;margin-bottom:10px;">🏠</div>
+          <h3 style="color:#f1c40f;font-size:18px;margin-bottom:8px;">创建/加入房间</h3>
+          <p style="color:#ccc;font-size:13px;line-height:1.4;">自定义房间设置，与好友一起游戏</p>
+        </div>
+      </div>
+
+      <!-- 匹配玩法模块 -->
+      <div class="mode-card" onclick="enterMatchMode()" style="cursor:pointer;">
+        <div style="background:rgba(46,204,113,0.1);border:2px solid #2ecc71;border-radius:12px;padding:20px;text-align:center;transition:all 0.3s;">
+          <div style="font-size:24px;color:#2ecc71;margin-bottom:10px;">⚡</div>
+          <h3 style="color:#2ecc71;font-size:18px;margin-bottom:8px;">快速匹配</h3>
+          <p style="color:#ccc;font-size:13px;line-height:1.4;">系统自动匹配玩家，快速开始游戏</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:30px;color:#666;font-size:12px;text-align:center;">
+      <div>最多6人，最少2人</div>
+      <div>比鸡卡牌游戏 - 网络对战版</div>
+    </div>
+  </div>
+</div>
+
 <!-- 大厅页 -->
 <div id="lobbyPage" class="page">
   <div class="lobby-header">
@@ -256,6 +305,7 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="logoutUser()">退出</button>
   </div>
   <div class="logo" style="font-size:32px;margin-top:10px;">比鸡大厅</div>
+  <button class="btn btn-secondary" style="align-self:center;margin-top:10px;padding:6px 14px;font-size:12px;" onclick="showPage('homePage')">← 返回首页</button>
   <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:12px;margin-top:10px;">
     <div class="lobby-section">
       <h3>创建房间</h3>
@@ -266,24 +316,59 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="createRoom()">创建房间</button>
     </div>
 
-    <div class="match-section">
-      <h3>快速匹配</h3>
-      <div class="match-status" id="matchStatus">
-        <div>与随机玩家对战</div>
-        <div class="match-count" id="matchCount">0</div>
-        <div>人在等待匹配</div>
-      </div>
-      <button class="btn btn-match" style="width:100%;margin-top:8px;" onclick="startMatch()" id="matchBtn">开始匹配</button>
-      <button class="btn btn-cancel-match" style="width:100%;margin-top:8px;display:none;" onclick="cancelMatch()" id="cancelMatchBtn">取消匹配</button>
-    </div>
-
-    <div class="lobby-or">- 或者 -</div>
     <div class="lobby-section">
       <h3>加入房间</h3>
       <div class="lobby-row"><label>房间号：</label><input id="lobbyJoinId" placeholder="输入房间号" maxlength="6" autocomplete="off"></div>
       <div class="lobby-row"><label>密码：</label><input id="lobbyJoinPwd" placeholder="输入密码" maxlength="10" autocomplete="off"></div>
       <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="joinRoom()">加入房间</button>
     </div>
+  </div>
+</div>
+
+<!-- 匹配页 -->
+<div id="matchPage" class="page">
+  <div style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:15px;padding:20px;">
+    <div class="logo" style="font-size:32px;margin-top:10px;">快速匹配</div>
+    <div style="color:#aaa;font-size:14px;text-align:center;">选择玩家人数，系统将自动为您匹配对手</div>
+
+    <div class="match-section" style="width:100%;margin-top:10px;">
+      <h3>匹配设置</h3>
+      <div class="match-status" id="matchStatus">
+        <div>与随机玩家对战</div>
+        <div class="match-count" id="matchCount">0</div>
+        <div>人在等待匹配</div>
+      </div>
+      <div class="lobby-row" style="margin-top:15px;">
+        <label>当前分数：</label>
+        <div id="currentScore" style="color:#f39c12;font-weight:bold;padding:8px 12px;">--</div>
+      </div>
+      <div style="color:#f39c12;font-size:12px;margin-top:2px;margin-bottom:10px;text-align:center;" id="modeHint">
+        <!-- 场次提示将在这里显示 -->
+      </div>
+      <div class="lobby-row" style="margin-top:15px;">
+        <label>场次选择：</label>
+        <select id="matchMode" style="padding:8px 12px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:13px;flex:1;outline:none;">
+          <option value="novice">新手场 (需要500分，底分5)</option>
+          <option value="normal">普通场 (需要2000分，底分20)</option>
+          <option value="master">大师场 (需要3000分，底分30)</option>
+        </select>
+      </div>
+      <div class="lobby-row" style="margin-top:15px;">
+        <label>玩家人数：</label>
+        <select id="matchPlayerCount" style="padding:8px 12px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:13px;flex:1;outline:none;">
+          <option value="2">2人</option>
+          <option value="3">3人</option>
+          <option value="4">4人</option>
+          <option value="5">5人</option>
+          <option value="6" selected>6人</option>
+        </select>
+      </div>
+      <div style="color:#888;font-size:12px;margin-top:5px;text-align:center;">最多6人，最少2人</div>
+      <button class="btn btn-match" style="width:100%;margin-top:15px;" onclick="startMatch()" id="matchBtn">开始匹配</button>
+      <button class="btn btn-cancel-match" style="width:100%;margin-top:8px;display:none;" onclick="cancelMatch()" id="cancelMatchBtn">取消匹配</button>
+    </div>
+
+    <button class="btn btn-secondary" style="align-self:flex-start;margin-top:20px;" onclick="showPage('homePage')">← 返回首页</button>
   </div>
 </div>
 
@@ -297,6 +382,7 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   <div id="roomCountdown" class="room-countdown" style="display:none;"></div>
   <div class="room-actions">
     <button class="btn btn-primary" id="readyBtn" onclick="toggleReady()">准备</button>
+    <button class="btn btn-secondary" id="viewLastRoundBtn" onclick="showDetailModal()" style="display:none;">查看上局牌型</button>
     <button class="btn btn-secondary" onclick="leaveRoom()">离开房间</button>
   </div>
 </div>
@@ -333,7 +419,7 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 <!-- 规则页 -->
 <div id="rulesPage" class="page">
-  <button class="btn btn-secondary" style="align-self:flex-start;" onclick="showPage('lobbyPage')">← 返回</button>
+  <button class="btn btn-secondary" style="align-self:flex-start;" onclick="showPage('homePage')">← 返回首页</button>
   <h2>比鸡游戏规则</h2>
   <h3>基础规则</h3>
   <ul>
@@ -420,13 +506,29 @@ function handleServerMsg(data) {
       if (document.getElementById('authPage').classList.contains('active')) {
         document.getElementById('authError').textContent = data.msg;
       } else {
-        alert(data.msg);
+        // 检查是否需要显示广告
+        if (data.requiresAd) {
+          showAdModal('insufficientScore');
+        } else {
+          alert(data.msg);
+        }
       }
       break;
     case 'login_ok':
       currentUser = { username: data.username, avatarIdx: data.avatarIdx, gold: data.gold };
       if (data.isNew) document.getElementById('welcomeOverlay').style.display = 'flex';
-      showLobby();
+      showPage('homePage');
+      break;
+    case 'ad_reward':
+      if (currentUser) {
+        currentUser.gold = data.gold;
+        updateMatchPageScore();
+        // 同时更新lobby页面的分数显示
+        if (document.getElementById('lobbyGold')) {
+          document.getElementById('lobbyGold').textContent = data.gold;
+        }
+      }
+      alert(data.msg);
       break;
     case 'room_created':
     case 'room_joined':
@@ -436,8 +538,13 @@ function handleServerMsg(data) {
       currentRoom = data.room;
       renderRoomPage();
       // 如果不在房间页（比如从结算页返回），自动跳转
+      // 但如果是匹配房间且当前在结算页，则不自动跳转，等待确认流程
+      const isMatchRoom = data.room.isMatchRoom;
+      const isResultPageActive = document.getElementById('resultPage').classList.contains('active');
       if (!document.getElementById('roomPage').classList.contains('active')) {
-        showPage('roomPage');
+        if (!(isMatchRoom && isResultPageActive)) {
+          showPage('roomPage');
+        }
       }
       break;
     case 'left_room':
@@ -471,6 +578,9 @@ function handleServerMsg(data) {
     case 'match_found':
       handleMatchFound(data);
       break;
+    case 'next_round_confirmed':
+      handleNextRoundConfirmed(data);
+      break;
   }
 }
 
@@ -479,10 +589,10 @@ function handleMatchStarted(data) {
   // 匹配开始，显示取消按钮，隐藏开始按钮
   document.getElementById('matchBtn').style.display = 'none';
   document.getElementById('cancelMatchBtn').style.display = 'block';
+  document.getElementById('matchPlayerCount').disabled = true;
   document.getElementById('matchStatus').innerHTML = `
     <div class="match-waiting">匹配中...</div>
-    <div class="match-count" id="matchCount">1</div>
-    <div>人在等待匹配</div>
+    <div>正在寻找合适房间...</div>
   `;
 }
 
@@ -490,10 +600,10 @@ function handleMatchCancelled(data) {
   // 匹配取消，恢复初始状态
   document.getElementById('matchBtn').style.display = 'block';
   document.getElementById('cancelMatchBtn').style.display = 'none';
+  document.getElementById('matchPlayerCount').disabled = false;
   document.getElementById('matchStatus').innerHTML = `
     <div>与随机玩家对战</div>
-    <div class="match-count" id="matchCount">0</div>
-    <div>人在等待匹配</div>
+    <div>选择人数后开始匹配</div>
   `;
 }
 
@@ -501,9 +611,24 @@ function handleMatchFound(data) {
   // 匹配成功，显示匹配信息
   document.getElementById('matchBtn').style.display = 'block';
   document.getElementById('cancelMatchBtn').style.display = 'none';
+  document.getElementById('matchPlayerCount').disabled = false;
+
+  let opponentInfo = '';
+  if (data.opponent && data.opponent.username) {
+    opponentInfo = `<div>对手：${data.opponent.username}</div>`;
+  } else {
+    opponentInfo = `<div>已加入多人房间</div>`;
+  }
+
+  // 添加场次信息
+  const modeInfo = data.modeName ? `<div>场次：${data.modeName}</div>` : '';
+  const baseScoreInfo = data.baseScore ? `<div>底分：${data.baseScore}</div>` : '';
+
   document.getElementById('matchStatus').innerHTML = `
     <div class="match-found">匹配成功！</div>
-    <div>对手：${data.opponent.username}</div>
+    ${opponentInfo}
+    ${modeInfo}
+    ${baseScoreInfo}
     <div>房间号：${data.roomId}</div>
     <div>密码：${data.password}</div>
   `;
@@ -520,11 +645,65 @@ function handleMatchFound(data) {
 
 // 匹配功能函数
 function startMatch() {
-  send({ type: 'start_match' });
+  const playerCount = parseInt(document.getElementById('matchPlayerCount').value);
+  const mode = document.getElementById('matchMode').value;
+  send({ type: 'start_match', playerCount, mode });
 }
 
 function cancelMatch() {
   send({ type: 'cancel_match' });
+}
+
+function handleNextRoundConfirmed(data) {
+  console.log('收到下一局确认状态:', data);
+
+  // 在结算页面显示确认状态
+  const resultPage = document.getElementById('resultPage');
+  if (resultPage.classList.contains('active')) {
+    console.log('结果页面激活，更新确认状态');
+
+    // 创建或更新确认状态提示
+    let confirmDiv = document.getElementById('nextRoundConfirmStatus');
+    if (!confirmDiv) {
+      console.log('创建新的确认状态提示');
+      confirmDiv = document.createElement('div');
+      confirmDiv.id = 'nextRoundConfirmStatus';
+      confirmDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; border-radius: 8px; color: #2ecc71; text-align: center;';
+      // 插入到按钮之前
+      const actionsDiv = document.querySelector('.result-actions');
+      if (actionsDiv) {
+        actionsDiv.parentNode.insertBefore(confirmDiv, actionsDiv);
+      }
+    }
+
+    const confirmed = data.confirmed || [];
+    const total = data.total || 0;
+    const allConfirmed = data.allConfirmed || false;
+    const playerLeft = data.playerLeft;
+
+    if (playerLeft) {
+      // 有玩家退出
+      confirmDiv.innerHTML = `
+        <div>玩家 ${playerLeft} 已退出</div>
+        <div style="font-size: 12px; margin-top: 5px;">剩余玩家: ${total}人</div>
+        <div style="font-size: 11px; color: #aaa; margin-top: 3px;">等待剩余玩家确认</div>
+      `;
+    } else if (allConfirmed || confirmed.length === total) {
+      confirmDiv.innerHTML = `
+        <div>所有玩家已确认，即将开始下一局...</div>
+        <div style="font-size: 12px; margin-top: 5px;">已确认: ${confirmed.length}/${total}</div>
+      `;
+      // 可以添加一个进度动画或倒计时
+    } else {
+      confirmDiv.innerHTML = `
+        <div>等待其他玩家确认下一局...</div>
+        <div style="font-size: 12px; margin-top: 5px;">已确认: ${confirmed.length}/${total}</div>
+        ${confirmed.length < total ? '<div style="font-size: 11px; color: #aaa; margin-top: 3px;">所有玩家确认后将自动开始下一局</div>' : ''}
+      `;
+    }
+  } else {
+    console.log('结果页面未激活，当前页面:', document.querySelector('.page.active')?.id);
+  }
 }
 
 // ========== 页面控制 ==========
@@ -539,6 +718,42 @@ function showLobby() {
   document.getElementById('lobbyAvatar').innerHTML = getAvatarHTML(currentUser.avatarIdx);
   document.getElementById('lobbyGold').textContent = currentUser.gold;
   showPage('lobbyPage');
+}
+
+function enterRoomMode() {
+  showLobby();
+}
+
+function updateMatchPageScore() {
+  if (!currentUser) return;
+  const scoreElement = document.getElementById('currentScore');
+  if (scoreElement) {
+    scoreElement.textContent = currentUser.gold;
+  }
+
+  // 根据分数更新场次提示
+  const hintElement = document.getElementById('modeHint');
+  if (hintElement) {
+    const score = currentUser.gold;
+    let hint = '';
+    if (score >= 3000) {
+      hint = '您可以进入大师场、普通场或新手场';
+    } else if (score >= 2000) {
+      hint = '您可以进入普通场或新手场';
+    } else if (score >= 500) {
+      hint = '您可以进入新手场';
+    } else {
+      hint = '分数不足500，无法进入新手场，请观看广告获取分数';
+    }
+    hintElement.textContent = hint;
+  }
+}
+
+function enterMatchMode() {
+  // 更新分数显示
+  updateMatchPageScore();
+  // 显示匹配页面
+  showPage('matchPage');
 }
 
 // ========== 登录注册 ==========
@@ -625,6 +840,17 @@ function renderRoomPage() {
   if (room.players.length >= 2 && room.players.every(p => p.ready)) {
     cd.style.display = 'block'; cd.textContent = '所有玩家已准备，即将开始...';
   } else { cd.style.display = 'none'; }
+
+  // 显示或隐藏查看上局牌型按钮
+  const viewLastRoundBtn = document.getElementById('viewLastRoundBtn');
+  if (viewLastRoundBtn) {
+    // 当游戏数据存在且房间处于等待状态时显示按钮
+    if (game && game.players && game.players.length > 0 && room.status === 'waiting') {
+      viewLastRoundBtn.style.display = 'inline-block';
+    } else {
+      viewLastRoundBtn.style.display = 'none';
+    }
+  }
 }
 
 // ========== 头像 ==========
@@ -753,9 +979,9 @@ function spawnParticles(count) {
 
 // ========== 网络游戏开始 ==========
 function startNetworkGame(data) {
-  // data: { hand, players, roundNum, baseScore, arrangeTime }
+  // data: { hand, players, roundNum, baseScore, arrangeTime, isMatchRoom }
   const myIdx = 0; // 自己永远排第一
-  session = { roundNum: data.roundNum, baseScore: data.baseScore, arrangeTime: data.arrangeTime, players: [] };
+  session = { roundNum: data.roundNum, baseScore: data.baseScore, arrangeTime: data.arrangeTime, isMatchRoom: data.isMatchRoom || false, players: [] };
   for (const p of data.players) {
     session.players.push({ name: p.username, avatarIdx: p.avatarIdx, totalScore: p.gold, isHuman: p.username === currentUser.username });
   }
@@ -1080,6 +1306,64 @@ function showResult() {
     </tr>`;
   }
   showPage('resultPage');
+
+  // 对于匹配房间，调整UI
+  if (session.isMatchRoom) {
+    // 隐藏"返回房间"按钮，显示确认下一局按钮
+    const backBtn = document.querySelector('.result-actions .btn-primary');
+    if (backBtn) {
+      backBtn.textContent = '确认下一局';
+      backBtn.onclick = function() {
+        console.log('手动确认下一局，金币更新:', currentUser.gold);
+        send({ type: 'start_next_round', goldUpdate: currentUser.gold });
+      };
+    }
+
+    // 修改退出按钮文本
+    const leaveBtn = document.querySelector('.result-actions .btn-secondary');
+    if (leaveBtn) leaveBtn.textContent = '退出匹配';
+
+    // 添加等待确认提示
+    const actionsDiv = document.querySelector('.result-actions');
+    if (actionsDiv) {
+      const confirmDiv = document.createElement('div');
+      confirmDiv.id = 'nextRoundConfirmStatus';
+      confirmDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; border-radius: 8px; color: #2ecc71; text-align: center;';
+      confirmDiv.innerHTML = `
+        <div>请确认是否继续下一局游戏</div>
+        <div style="font-size: 12px; margin-top: 5px;">点击"确认下一局"按钮继续</div>
+      `;
+      actionsDiv.parentNode.insertBefore(confirmDiv, actionsDiv);
+    }
+
+    // 不再自动发送确认，等待玩家手动点击
+    console.log('匹配房间结算完成，等待玩家手动确认');
+  } else {
+    // 非匹配房间，也改为确认下一局流程
+    const backBtn = document.querySelector('.result-actions .btn-primary');
+    if (backBtn) {
+      backBtn.textContent = '确认下一局';
+      backBtn.onclick = function() {
+        console.log('手动确认下一局，金币更新:', currentUser.gold);
+        send({ type: 'start_next_round', goldUpdate: currentUser.gold });
+      };
+    }
+
+    // 添加等待确认提示
+    const actionsDiv = document.querySelector('.result-actions');
+    if (actionsDiv) {
+      const confirmDiv = document.createElement('div');
+      confirmDiv.id = 'nextRoundConfirmStatus';
+      confirmDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; border-radius: 8px; color: #2ecc71; text-align: center;';
+      confirmDiv.innerHTML = `
+        <div>请确认是否继续下一局游戏</div>
+        <div style="font-size: 12px; margin-top: 5px;">点击"确认下一局"按钮继续</div>
+      `;
+      actionsDiv.parentNode.insertBefore(confirmDiv, actionsDiv);
+    }
+
+    console.log('非匹配房间结算完成，等待玩家手动确认');
+  }
 }
 
 function backToRoom() {
@@ -1109,6 +1393,85 @@ document.getElementById('detailModal').addEventListener('click', function(e) { i
 
 // ========== 启动 ==========
 connectWS();
+
+// ========== 广告系统 ==========
+function showAdModal(reason) {
+  const modal = document.getElementById('adModal');
+  const title = document.getElementById('adTitle');
+  const timer = document.getElementById('adTimer');
+  const status = document.getElementById('adStatus');
+
+  if (reason === 'insufficientScore') {
+    title.textContent = '分数不足，观看广告获取分数';
+    document.getElementById('adRewardInfo').textContent = '观看30秒广告可获得500分';
+    document.getElementById('adActionBtn').style.display = 'block';
+  }
+
+  modal.classList.add('show');
+
+  // 如果有倒计时逻辑，可以在这里实现
+}
+
+function closeAdModal() {
+  document.getElementById('adModal').classList.remove('show');
+}
+
+function startAdWatch() {
+  const timer = document.getElementById('adTimer');
+  const status = document.getElementById('adStatus');
+  const actionBtn = document.getElementById('adActionBtn');
+
+  // 禁用按钮
+  actionBtn.disabled = true;
+  actionBtn.textContent = '观看中...';
+
+  // 设置30秒倒计时
+  let seconds = 30;
+  timer.textContent = `${seconds}秒`;
+
+  const countdown = setInterval(() => {
+    seconds--;
+    timer.textContent = `${seconds}秒`;
+
+    if (seconds <= 0) {
+      clearInterval(countdown);
+      status.textContent = '广告观看完成！';
+      actionBtn.textContent = '领取500分';
+      actionBtn.disabled = false;
+      actionBtn.onclick = claimAdReward;
+    }
+  }, 1000);
+}
+
+function claimAdReward() {
+  send({ type: 'watch_ad_complete' });
+  closeAdModal();
+}
+
+
 </script>
+
+<!-- 广告弹窗 -->
+<div class="modal-overlay" id="adModal">
+  <div class="modal" style="max-width:400px;">
+    <h3 id="adTitle">观看广告获取分数</h3>
+    <div style="text-align:center;padding:20px;">
+      <div style="font-size:24px;color:#f39c12;margin-bottom:15px;">广告播放中</div>
+      <div style="font-size:16px;color:#aaa;margin-bottom:10px;">剩余时间：<span id="adTimer">30秒</span></div>
+      <div style="font-size:14px;color:#888;margin-bottom:20px;" id="adRewardInfo"></div>
+      <div style="font-size:12px;color:#666;margin-bottom:20px;" id="adStatus">请观看完整广告以获得奖励</div>
+      <button class="btn btn-primary" id="adActionBtn" onclick="startAdWatch()" style="width:100%;padding:12px;">开始观看广告</button>
+      <button class="btn btn-secondary" onclick="closeAdModal()" style="width:100%;margin-top:10px;padding:12px;">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 广告弹窗点击外部关闭
+document.getElementById('adModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAdModal();
+});
+</script>
+
 </body>
 </html>

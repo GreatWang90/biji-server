@@ -125,8 +125,8 @@ select option { background: #1a1a2e; color: #fff; }
 .card.selected { transform: translateY(-10px); box-shadow: 0 8px 20px rgba(52,152,219,0.5); border: 2px solid #3498db; }
 .card .suit { font-size: 22px; line-height: 1; }
 .card .rank { font-size: 15px; line-height: 1; }
-.card.red { color: #e74c3c; }
-.card.black { color: #2c3e50; }
+.card.red { color: #ff2d2d; }
+.card.black { color: #000000; }
 .card.joker { background: linear-gradient(135deg, #f39c12, #e74c3c); color: #fff; font-size: 13px; }
 .card.joker.small-joker { background: linear-gradient(135deg, #2ecc71, #27ae60); }
 .card.face-down { background: linear-gradient(135deg, #2c3e50, #34495e); color: transparent; cursor: default; border: 1px solid #4a6785; }
@@ -236,6 +236,62 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 /* 场次选择提示 */
 .mode-hint { font-size: 12px; color: #888; margin-top: 2px; }
+
+/* 场次选择卡片 */
+.match-mode-cards {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.match-mode-card {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.match-mode-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+.match-mode-card.selected {
+  border-color: #2ecc71;
+  background: rgba(46,204,113,0.1);
+}
+.match-mode-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #888;
+}
+.match-mode-card.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+.match-mode-card .mode-name {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #fff;
+}
+.match-mode-card.selected .mode-name {
+  color: #2ecc71;
+}
+.match-mode-card .mode-requirement {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+.match-mode-card .mode-base-score {
+  font-size: 13px;
+  color: #f39c12;
+  font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -347,11 +403,24 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       </div>
       <div class="lobby-row" style="margin-top:15px;">
         <label>场次选择：</label>
-        <select id="matchMode" style="padding:8px 12px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:13px;flex:1;outline:none;">
-          <option value="novice">新手场 (需要500分，底分5)</option>
-          <option value="normal">普通场 (需要2000分，底分20)</option>
-          <option value="master">大师场 (需要3000分，底分30)</option>
-        </select>
+        <div class="match-mode-cards">
+          <div class="match-mode-card selected" data-mode="novice" onclick="selectMatchMode('novice')">
+            <div class="mode-name">新手场</div>
+            <div class="mode-requirement">入场分数：500</div>
+            <div class="mode-base-score">底分：5</div>
+          </div>
+          <div class="match-mode-card" data-mode="normal" onclick="selectMatchMode('normal')">
+            <div class="mode-name">普通场</div>
+            <div class="mode-requirement">入场分数：2000</div>
+            <div class="mode-base-score">底分：20</div>
+          </div>
+          <div class="match-mode-card" data-mode="master" onclick="selectMatchMode('master')">
+            <div class="mode-name">大师场</div>
+            <div class="mode-requirement">入场分数：3000</div>
+            <div class="mode-base-score">底分：30</div>
+          </div>
+        </div>
+        <input type="hidden" id="matchMode" value="novice">
       </div>
       <div class="lobby-row" style="margin-top:15px;">
         <label>玩家人数：</label>
@@ -613,8 +682,15 @@ function handleServerMsg(data) {
       }
       break;
     case 'left_room':
+      const wasMatchRoom = currentRoom && currentRoom.isMatchRoom;
       currentRoom = null;
-      showLobby();
+      if (wasMatchRoom) {
+        // 从匹配房间退出，跳转到匹配页面并更新分数
+        updateMatchPageScore();
+        showPage('matchPage');
+      } else {
+        showLobby();
+      }
       break;
     case 'game_start':
       startNetworkGame(data);
@@ -811,6 +887,75 @@ function updateMatchPageScore() {
       hint = '分数不足500，无法进入新手场，请观看广告获取分数';
     }
     hintElement.textContent = hint;
+  }
+  // 更新场次选择卡片状态
+  updateMatchModeCards();
+}
+
+function selectMatchMode(mode) {
+  // 检查分数是否允许选择该场次
+  const score = currentUser ? currentUser.gold : 0;
+  const minScores = { novice: 500, normal: 2000, master: 3000 };
+  if (score < minScores[mode]) {
+    // 分数不足，不能选择该场次
+    return;
+  }
+
+  // 更新选中状态
+  document.querySelectorAll('.match-mode-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  const selectedCard = document.querySelector(`.match-mode-card[data-mode="${mode}"]`);
+  if (selectedCard) {
+    selectedCard.classList.add('selected');
+  }
+
+  // 更新隐藏的input值
+  document.getElementById('matchMode').value = mode;
+
+  // 更新场次提示
+  updateMatchPageScore();
+}
+
+function updateMatchModeCards() {
+  if (!currentUser) return;
+  const score = currentUser.gold;
+  const minScores = { novice: 500, normal: 2000, master: 3000 };
+
+  // 首先更新所有卡片的禁用状态
+  document.querySelectorAll('.match-mode-card').forEach(card => {
+    const mode = card.getAttribute('data-mode');
+    const minScore = minScores[mode];
+
+    if (score < minScore) {
+      card.classList.add('disabled');
+      card.classList.remove('selected');
+    } else {
+      card.classList.remove('disabled');
+    }
+  });
+
+  // 检查当前选中的模式是否可用
+  const currentMode = document.getElementById('matchMode').value;
+  const currentMinScore = minScores[currentMode] || 500;
+  if (score < currentMinScore) {
+    // 当前选中的模式不可用，自动选择最高可用的模式
+    let newMode = 'novice';
+    if (score >= 3000) {
+      newMode = 'master';
+    } else if (score >= 2000) {
+      newMode = 'normal';
+    }
+    // 更新选中状态
+    document.querySelectorAll('.match-mode-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    const selectedCard = document.querySelector(`.match-mode-card[data-mode="${newMode}"]`);
+    if (selectedCard) {
+      selectedCard.classList.add('selected');
+    }
+    // 更新隐藏的input值
+    document.getElementById('matchMode').value = newMode;
   }
 }
 
@@ -1484,6 +1629,7 @@ connectWS();
 
 // ========== 广告系统 ==========
 function showAdModal(reason) {
+  console.log('显示广告弹窗，原因:', reason);
   const modal = document.getElementById('adModal');
   const title = document.getElementById('adTitle');
   const timer = document.getElementById('adTimer');
@@ -1496,6 +1642,7 @@ function showAdModal(reason) {
   }
 
   modal.classList.add('show');
+  console.log('广告弹窗显示类已添加，modal:', modal);
 
   // 如果有倒计时逻辑，可以在这里实现
 }

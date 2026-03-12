@@ -316,7 +316,8 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 <!-- 首页 -->
 <div id="homePage" class="page">
-  <div style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;">
+  <div style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;position:relative;">
+    <button class="btn btn-secondary" style="position:absolute;top:10px;right:10px;padding:6px 14px;font-size:12px;" onclick="logoutUser()">退出</button>
     <div class="logo" style="font-size:36px;margin-top:20px;">比鸡游戏</div>
     <div style="color:#aaa;font-size:14px;text-align:center;">请选择游戏模式</div>
 
@@ -507,7 +508,7 @@ html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   <div class="welcome-box">
     <div class="welcome-title">欢迎来到比鸡！</div>
     <div class="welcome-label">系统赠送您初始金币</div>
-    <div class="welcome-coins">5000</div>
+    <div class="welcome-coins">500</div>
     <div class="welcome-label">祝您牌运亨通！</div>
     <button class="btn btn-primary" style="margin-top:18px;" onclick="document.getElementById('welcomeOverlay').style.display='none'">开始游戏</button>
   </div>
@@ -786,6 +787,10 @@ function handleMatchFound(data) {
 
 // 匹配功能函数
 function startMatch() {
+  if (!ws || ws.readyState !== 1) {
+    alert('网络未连接，请稍后重试');
+    return;
+  }
   const playerCount = parseInt(document.getElementById('matchPlayerCount').value);
   const mode = document.getElementById('matchMode').value;
   send({ type: 'start_match', playerCount, mode });
